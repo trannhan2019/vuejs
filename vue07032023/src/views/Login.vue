@@ -1,70 +1,114 @@
 <script setup>
-//import {RouterLink} from "vue-router"
+import { useField, useForm } from "vee-validate"
 import * as yup from "yup";
-import { useField, useForm } from "vee-validate";
-import AuthLayout from "../layouts/AuthLayout.vue";
+import { useAuth } from "../stores/auth";
+import userApi from "../api/modules/user.api";
+import { toast } from 'vue3-toastify';
+import { useRouter } from "vue-router";
 
-const schema = yup.object({
-    email: yup.string().email().required().label("E-mail"),
-    password: yup.string().min(6).required().label("Password"),
-});
-const { handleSubmit, handleReset } = useForm({ validationSchema: schema });
+const authStore = useAuth();
+const router = useRouter()
+
+const { handleSubmit, errors, setErrors } = useForm({
+   initialValues: {
+      email: '', password: ''
+   },
+   initialTouched: { email: true, password: false },
+   validationSchema: yup.object({
+      email: yup.string().email().required().label("E-mail"),
+      password: yup.string().min(6).required().label("Password"),
+   })
+})
 const onSubmit = handleSubmit(async (values) => {
-    console.log(values);
+   // console.log(values);
+   const { response, err } = await userApi.login(values);
+   if (response) {
+      authStore.setUser(response)
+      toast.success("Sign In success");
+      router.push("/")
+   }
+   if (err) {
+      if (err.status_code === 422) {
+         console.log(err.error);
+         setErrors(err.error);
+      } else {
+         toast.error(err.data ? err.data.message : err.message);
+      }
+   }
+   // await authStore.handleLogin(values)
+   // setErrors(authStore.errors)
+   // console.log(authStore.errors.email);
 });
 
-const { value: email, errorMessage: emailErr } = useField("email");
-const { value: password, errorMessage: passwordErr } = useField("password");
+const { value: email } = useField("email");
+const { value: password } = useField("password");
 </script>
 
 <template>
-    <AuthLayout>
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="pt-4 pb-2">
-                    <h5 class="card-title text-center pb-0 fs-4">
-                        Login to Your Account
-                    </h5>
-                    <p class="text-center small">
-                        Enter your username & password to login
-                    </p>
-                </div>
+   <!-- component -->
 
-                <form class="row g-3 needs-validation" @submit="onSubmit" novalidate>
-                    <div class="col-12">
-                        <label for="yourUsername" class="form-label">Email</label>
-                        <div class="input-group has-validation">
-                            <span class="input-group-text">@</span>
-                            <input v-model="email" type="email" name="name" class="form-control"
-                                :class="emailErr ? `is-invalid` : `is-valid`" />
-                            <div class="invalid-feedback">{{ emailErr }}</div>
-                        </div>
-                    </div>
+   <main class="font-mono bg-gray-400">
+      <!-- Container -->
+      <div class="container mx-auto">
+         <div class="flex justify-center px-6 my-12">
+            <!-- Row -->
+            <div class="w-full xl:w-3/4 lg:w-11/12 flex">
+               <!-- Col -->
+               <div class="w-full h-auto bg-gray-400 hidden lg:block lg:w-1/2 bg-cover rounded-l-lg"
+                  style="background-image: url('https://source.unsplash.com/K4mSJ7kc0As/600x800')"></div>
+               <!-- Col -->
+               <div class="w-full lg:w-1/2 bg-white p-5 rounded-lg lg:rounded-l-none">
+                  <h3 class="pt-4 text-2xl text-center">Welcome Back!</h3>
+                  <form @submit="onSubmit" class="px-8 pt-6 pb-8 mb-4 bg-white rounded">
+                     <div class="mb-4">
+                        <label class="block mb-2 text-sm font-bold text-gray-700">
+                           Username
+                        </label>
+                        <input v-model="email" :class="errors.email && 'input-error'"
+                           class="input input-sm input-bordered w-full focus:outline-none" type="email"
+                           placeholder="Username" />
+                        <p v-if="errors.email" class="text-xs my-1 italic text-red-500">{{ errors.email }}</p>
+                     </div>
+                     <div class="mb-4">
+                        <label class="block mb-2 text-sm font-bold text-gray-700">
+                           Password
+                        </label>
+                        <input v-model="password" :class="errors.password && 'input-error'"
+                           class="input input-sm input-bordered w-full focus:outline-none" type="password"
+                           placeholder="Username" />
+                        <p v-if="errors.password" class="text-xs my-1 italic text-red-500">{{ errors.password }}</p>
 
-                    <div class="col-12">
-                        <label class="form-label">Password</label>
-                        <input v-model="password" type="password" name="password" class="form-control"
-                            :class="passwordErr ? `is-invalid` : `is-valid`" required />
-                        <div class="invalid-feedback">{{ passwordErr }}</div>
-                    </div>
-
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="remember" value="true" id="rememberMe" />
-                            <label class="form-check-label" for="rememberMe">Remember me</label>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <button class="btn btn-primary w-100" type="submit">Login</button>
-                    </div>
-                    <div class="col-12">
-                        <p class="small mb-0">
-                            Don't have account?
-                            <router-link to="/register">Create an account</router-link>
-                        </p>
-                    </div>
-                </form>
+                     </div>
+                     <div class="mb-4">
+                        <input class="mr-2 leading-tight" type="checkbox" id="checkbox_id" />
+                        <label class="text-sm" for="checkbox_id">
+                           Remember Me
+                        </label>
+                     </div>
+                     <div class="mb-6 text-center">
+                        <button
+                           class="w-full px-4 py-2 font-bold text-white bg-blue-500 rounded-full hover:bg-blue-700 focus:outline-none focus:shadow-outline"
+                           type="submit">
+                           Sign In
+                        </button>
+                     </div>
+                     <hr class="mb-6 border-t" />
+                     <div class="text-center">
+                        <router-link class="inline-block text-sm text-blue-500 align-baseline hover:text-blue-800"
+                           to="register">
+                           Create an Account!
+                        </router-link>
+                     </div>
+                     <div class="text-center">
+                        <router-link class="inline-block text-sm text-blue-500 align-baseline hover:text-blue-800"
+                           to="/forgot">
+                           Forgot Password?
+                        </router-link>
+                     </div>
+                  </form>
+               </div>
             </div>
-        </div>
-    </AuthLayout>
+         </div>
+      </div>
+   </main>
 </template>

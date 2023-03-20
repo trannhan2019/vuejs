@@ -1,13 +1,9 @@
-import HomeView from "../views/public/HomeView.vue";
-import AboutView from "../views/public/AboutView.vue";
+import Home from "../views/Home.vue";
+import Chat from "../views/private/chat/Chat.vue";
 
 const publicRoutes = [
-  { path: "/", name: "home", component: HomeView },
-  {
-    path: "/about",
-    name: "about",
-    component: AboutView,
-  },
+  { path: "/", name: "home", component: Home },
+  { path: "/chat", name: "chat", component: Chat },
 ];
 
 export default publicRoutes;

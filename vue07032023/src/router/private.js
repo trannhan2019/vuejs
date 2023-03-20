@@ -1,5 +1,7 @@
-import HomeView from "../views/public/HomeView.vue";
+import AdminLayout from "../layouts/AdminLayout.vue";
 
-const privateRoutes = [{ path: "/admin", name: "admin", component: HomeView }];
+const privateRoutes = [
+  { path: "/admin", name: "admin", component: AdminLayout },
+];
 
 export default privateRoutes;

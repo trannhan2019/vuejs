@@ -1,92 +1,122 @@
 <script setup>
+import { useField, useForm } from "vee-validate"
 import * as yup from "yup";
-import { useField, useForm } from "vee-validate";
-import AuthLayout from "../layouts/AuthLayout.vue";
+import userApi from "../api/modules/user.api";
+import { toast } from 'vue3-toastify';
 
-const schema = yup.object({
-    name: yup.string().min(5).required().label("Your Name"),
-    email: yup.string().email().required().label("E-mail"),
-    password: yup.string().min(6).required().label("Password"),
-    confirm_password: yup.string().label('confirm password').required().oneOf([yup.ref('password'), null], 'Passwords must match'),
-});
-const { handleSubmit } = useForm({ validationSchema: schema });
+const { handleSubmit, errors, setErrors } = useForm({
+   initialValues: {
+      name: '', email: '', password: '', password_confirmation: ''
+   },
+   validationSchema: yup.object({
+      name: yup.string().min(6).required().label('Your Name'),
+      email: yup.string().email().required().label("E-mail"),
+      password: yup.string().min(6).required().label("Password"),
+      password_confirmation: yup.string().oneOf([yup.ref("password")], "confirmPassword not match")
+         .min(6, "confirmPassword minimum 6 characters")
+         .required("confirmPassword is required"),
+   })
+})
 const onSubmit = handleSubmit(async (values) => {
-    console.log(values);
+   const { response, err } = await userApi.register(values);
+   if (response) {
+      toast.success("Sign In success");
+   }
+   if (err) {
+      if (err.status_code === 422) {
+         console.log(err.error);
+         setErrors(err.error);
+      } else {
+         toast.error(err.data ? err.data.message : err.message);
+      }
+   }
 });
 
-const { value: name, errorMessage: nameErr } = useField("name");
-const { value: email, errorMessage: emailErr } = useField("email");
-const { value: password, errorMessage: passwordErr } = useField("password");
-const { value: confirm_password, errorMessage: confirmpasswordErr } = useField("confirm_password");
+const { value: name } = useField("name");
+const { value: email } = useField("email");
+const { value: password } = useField("password");
+const { value: password_confirmation } = useField("password_confirmation");
+
 </script>
 
 <template>
-    <AuthLayout>
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="pt-4 pb-2">
-                    <h5 class="card-title text-center pb-0 fs-4">Create an Account</h5>
-                    <p class="text-center small">
-                        Enter your personal details to create account
-                    </p>
-                </div>
-
-                <form class="row g-3 needs-validation" novalidate @submit="onSubmit">
-                    <div class="col-12">
-                        <label for="yourName" class="form-label">Your Name</label>
-                        <input v-model="name" type="text" name="name" class="form-control"
-                            :class="nameErr ? `is-invalid` : `is-valid`" required />
-                        <div class="invalid-feedback">{{ nameErr }}</div>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="yourEmail" class="form-label">Your Email</label>
-                        <input v-model="email" type="email" name="email" class="form-control" id="yourEmail" required
-                            :class="emailErr ? `is-invalid` : `is-valid`" />
-                        <div class="invalid-feedback">
-                            {{ emailErr }}
+   <!-- component -->
+   <main class="font-mono bg-gray-400">
+      <!-- Container -->
+      <div class="container mx-auto">
+         <div class="flex justify-center px-6 my-12">
+            <!-- Row -->
+            <div class="w-full xl:w-3/4 lg:w-11/12 flex">
+               <!-- Col -->
+               <div class="w-full h-auto bg-gray-400 hidden lg:block lg:w-5/12 bg-cover rounded-l-lg"
+                  style="background-image: url('https://source.unsplash.com/Mv9hjnEUHR4/600x800')"></div>
+               <!-- Col -->
+               <div class="w-full lg:w-7/12 bg-white p-5 rounded-lg lg:rounded-l-none">
+                  <h3 class="pt-4 text-2xl text-center">Create an Account!</h3>
+                  <form @submit="onSubmit" class="px-8 pt-6 pb-8 mb-4 bg-white rounded">
+                     <div class="mb-4">
+                        <label class="block mb-2 text-sm font-bold text-gray-700">
+                           Your Name
+                        </label>
+                        <input :class="errors.name && 'border-red-500'" v-model="name"
+                           class="w-full px-3 py-2 mb-3 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                           type="text" placeholder="Your Name" />
+                        <p v-if="errors.name" class="text-xs my-1 italic text-red-500">{{ errors.name }}</p>
+                     </div>
+                     <div class="mb-4">
+                        <label class="block mb-2 text-sm font-bold text-gray-700" for="email">
+                           Email
+                        </label>
+                        <input :class="errors.email && 'border-red-500'" v-model="email"
+                           class="w-full px-3 py-2 mb-3 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                           id="email" type="email" placeholder="Email" />
+                        <p v-if="errors.email" class="text-xs my-1 italic text-red-500">{{ errors.email }}</p>
+                     </div>
+                     <div class="mb-4 md:flex md:justify-between">
+                        <div class="mb-4 md:mr-2 md:mb-0">
+                           <label class="block mb-2 text-sm font-bold text-gray-700" for="password">
+                              Password
+                           </label>
+                           <input :class="errors.password && 'border-red-500'" v-model="password"
+                              class="w-full px-3 py-2 mb-3 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                              id="password" type="password" />
+                           <p v-if="errors.password" class="text-xs italic text-red-500">{{ errors.password }}</p>
                         </div>
-                    </div>
-
-
-                    <div class="col-12">
-                        <label class="form-label">Password</label>
-                        <input v-model="password" type="password" name="password" class="form-control" required
-                            :class="passwordErr ? `is-invalid` : `is-valid`" />
-                        <div class="invalid-feedback">{{ passwordErr }}</div>
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label">Re - Password</label>
-                        <input v-model="confirm_password" type="password" name="password" class="form-control" required
-                            :class="confirmpasswordErr ? `is-invalid` : `is-valid`" />
-                        <div class="invalid-feedback">{{ confirmpasswordErr }}</div>
-                    </div>
-
-                    <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" name="terms" type="checkbox" value="" id="acceptTerms"
-                                required />
-                            <label class="form-check-label" for="acceptTerms">I agree and accept the
-                                <a href="#">terms and conditions</a></label>
-                            <div class="invalid-feedback">
-                                You must agree before submitting.
-                            </div>
+                        <div class="md:ml-2">
+                           <label class="block mb-2 text-sm font-bold text-gray-700" for="c_password">
+                              Confirm Password
+                           </label>
+                           <input :class="errors.password_confirmation && 'border-red-500'" v-model="password_confirmation"
+                              class="w-full px-3 py-2 mb-3 text-sm leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+                              id="c_password" type="password" />
+                           <p v-if="errors.password_confirmation" class="text-xs italic text-red-500">{{
+                              errors.password_confirmation }}</p>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <button class="btn btn-primary w-100" type="submit">
-                            Create Account
+                     </div>
+                     <div class="mb-6 text-center">
+                        <button
+                           class="w-full px-4 py-2 font-bold text-white bg-blue-500 rounded-full hover:bg-blue-700 focus:outline-none focus:shadow-outline"
+                           type="submit">
+                           Register Account
                         </button>
-                    </div>
-                    <div class="col-12">
-                        <p class="small mb-0">
-                            Already have an account?
-                            <router-link to="/login">Log in</router-link>
-                        </p>
-                    </div>
-                </form>
+                     </div>
+                     <hr class="mb-6 border-t" />
+                     <div class="text-center">
+                        <router-link class="inline-block text-sm text-blue-500 align-baseline hover:text-blue-800"
+                           to="/forgot">
+                           Forgot Password?
+                        </router-link>
+                     </div>
+                     <div class="text-center">
+                        <router-link class="inline-block text-sm text-blue-500 align-baseline hover:text-blue-800"
+                           to="/login">
+                           Already have an account? Login!
+                        </router-link>
+                     </div>
+                  </form>
+               </div>
             </div>
-        </div>
-    </AuthLayout>
+         </div>
+      </div>
+   </main>
 </template>
